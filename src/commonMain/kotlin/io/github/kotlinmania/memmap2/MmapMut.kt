@@ -1,5 +1,7 @@
 package io.github.kotlinmania.memmap2
 
+import io.github.kotlinmania.io.files.Path
+
 /**
  * A handle to a mutable memory mapped buffer.
  */
@@ -151,6 +153,18 @@ class MmapMut internal constructor(
     fun asByteArray(): ByteArray =
         inner.asByteArray()
 
+    fun deref(): ByteArray =
+        asByteArray()
+
+    fun derefMut(): ByteArray =
+        asByteArray()
+
+    fun asRef(): ByteArray =
+        asByteArray()
+
+    fun asMut(): ByteArray =
+        asByteArray()
+
     /**
      * Copies all bytes from source slice into this mapped buffer.
      */
@@ -200,6 +214,9 @@ class MmapMut internal constructor(
         fun <T : MmapAsRawDesc> mapMut(file: T): Result<MmapMut> =
             MmapOptions.new().mapMut(file)
 
+        fun mapMut(path: Path): Result<MmapMut> =
+            mapMut(path.asRawDesc())
+
         /**
          * Creates an anonymous memory map of given length.
          */
@@ -214,5 +231,8 @@ class MmapMut internal constructor(
          */
         fun <T : MmapAsRawDesc> mapCopy(file: T): Result<MmapMut> =
             MmapOptions.new().mapCopy(file)
+
+        fun mapCopy(path: Path): Result<MmapMut> =
+            mapCopy(path.asRawDesc())
     }
 }

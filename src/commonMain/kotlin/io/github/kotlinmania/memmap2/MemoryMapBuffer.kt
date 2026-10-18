@@ -34,6 +34,7 @@ internal class MemoryMapBuffer(
         check(isWritable) { "Memory map is read-only" }
         require(index in 0 until len()) { "Index out of bounds: $index for len ${len()}" }
         data[index.toInt()] = value
+        syncToSharedCache()
     }
 
     override fun asByteArray(): ByteArray {
@@ -51,6 +52,7 @@ internal class MemoryMapBuffer(
             "Source range [srcOffset=$srcOffset, len=$len] exceeds source size ${src.size}"
         }
         src.copyInto(data, offset.toInt(), srcOffset, srcOffset + len)
+        syncToSharedCache()
     }
 
     override fun copyTo(dest: ByteArray, destOffset: Int, startIndex: Long, endIndex: Long) {
@@ -65,64 +67,62 @@ internal class MemoryMapBuffer(
         data.copyInto(dest, destOffset, startIndex.toInt(), endIndex.toInt())
     }
 
-    override fun flush(offset: Long, len: Long): Result<Unit> = runCatching {
-        checkNotClosed()
-        if (isCopyOnWrite || filePath == null || !isWritable) {
-            return@runCatching
+    override fun flush(offset: Long, len: Long): Result<Unit> =
+        runCatching {
+            checkNotClosed()
+            if (isCopyOnWrite || filePath == null || !isWritable) {
+                return@runCatching
+            }
+            syncToSharedCache()
+            val pathKey = filePath.toString()
+            val merged = sharedCache[pathKey] ?: ByteArray(0)
+            val sink = SystemFileSystem.sink(filePath).buffered()
+            sink.use { it.write(merged) }
         }
-        val existingBytes = if (SystemFileSystem.exists(filePath)) {
-            val source = SystemFileSystem.source(filePath).buffered()
-            source.use { it.readByteArray() }
-        } else {
-            ByteArray(0)
-        }
-        val targetLength = maxOf(existingBytes.size.toLong(), fileOffset + this.len()).toInt()
-        val merged = ByteArray(targetLength)
-        existingBytes.copyInto(merged, 0, 0, existingBytes.size)
-
-        val flushStart = (fileOffset + offset).toInt()
-        val copyCount = len.toInt()
-        data.copyInto(merged, flushStart, offset.toInt(), offset.toInt() + copyCount)
-
-        val sink = SystemFileSystem.sink(filePath).buffered()
-        sink.use { it.write(merged) }
-    }
 
     override fun flushAsync(offset: Long, len: Long): Result<Unit> =
         flush(offset, len)
 
-    override fun makeReadOnly(): Result<Unit> = runCatching {
-        checkNotClosed()
-        isWritable = false
-    }
+    override fun makeReadOnly(): Result<Unit> =
+        runCatching {
+            checkNotClosed()
+            isWritable = false
+        }
 
-    override fun makeExec(): Result<Unit> = runCatching {
-        checkNotClosed()
-        isWritable = false
-    }
+    override fun makeExec(): Result<Unit> =
+        runCatching {
+            checkNotClosed()
+            isWritable = false
+        }
 
-    override fun makeMut(): Result<Unit> = runCatching {
-        checkNotClosed()
-        isWritable = true
-    }
+    override fun makeMut(): Result<Unit> =
+        runCatching {
+            checkNotClosed()
+            isWritable = true
+        }
 
-    override fun advise(advice: Int, offset: Long, len: Long): Result<Unit> = runCatching {
-        checkNotClosed()
-    }
+    override fun advise(advice: Int, offset: Long, len: Long): Result<Unit> =
+        runCatching {
+            checkNotClosed()
+        }
 
-    override fun lock(): Result<Unit> = runCatching {
-        checkNotClosed()
-    }
+    override fun lock(): Result<Unit> =
+        runCatching {
+            checkNotClosed()
+        }
 
-    override fun unlock(): Result<Unit> = runCatching {
-        checkNotClosed()
-    }
+    override fun unlock(): Result<Unit> =
+        runCatching {
+            checkNotClosed()
+        }
 
-    override fun remap(newLen: Long, options: RemapOptions): Result<Unit> = runCatching {
-        checkNotClosed()
-        val newIntLen = newLen.toInt()
-        data = data.copyOf(newIntLen)
-    }
+    override fun remap(newLen: Long, options: RemapOptions): Result<Unit> =
+        runCatching {
+            checkNotClosed()
+            val newIntLen = newLen.toInt()
+            data = data.copyOf(newIntLen)
+            syncToSharedCache()
+        }
 
     override fun close() {
         if (!isClosed) {
@@ -131,11 +131,24 @@ internal class MemoryMapBuffer(
         }
     }
 
+    private fun syncToSharedCache() {
+        if (!isCopyOnWrite && filePath != null) {
+            val key = filePath.toString()
+            val current = sharedCache[key] ?: ByteArray(0)
+            val neededSize = maxOf(current.size, (fileOffset + len()).toInt())
+            val updated = if (current.size < neededSize) current.copyOf(neededSize) else current
+            data.copyInto(updated, fileOffset.toInt(), 0, data.size)
+            sharedCache[key] = updated
+        }
+    }
+
     private fun checkNotClosed() {
         check(!isClosed) { "Memory map is closed" }
     }
 
     companion object {
+        private val sharedCache = HashMap<String, ByteArray>()
+
         fun createAnon(len: Long): MemoryMapBuffer =
             MemoryMapBuffer(
                 data = ByteArray(len.toInt()),
@@ -152,12 +165,18 @@ internal class MemoryMapBuffer(
             writable: Boolean,
             copyOnWrite: Boolean,
         ): MemoryMapBuffer {
-            val fileBytes = if (SystemFileSystem.exists(path)) {
-                val source = SystemFileSystem.source(path).buffered()
-                source.use { it.readByteArray() }
-            } else {
-                ByteArray(0)
-            }
+            val pathKey = path.toString()
+            val fileBytes =
+                sharedCache[pathKey] ?: if (SystemFileSystem.exists(path)) {
+                    val source = SystemFileSystem.source(path).buffered()
+                    val bytes = source.use { it.readByteArray() }
+                    sharedCache[pathKey] = bytes
+                    bytes
+                } else {
+                    val bytes = ByteArray(0)
+                    sharedCache[pathKey] = bytes
+                    bytes
+                }
 
             val bufferSize = len.toInt()
             val slice = ByteArray(bufferSize)

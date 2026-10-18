@@ -1,5 +1,7 @@
 package io.github.kotlinmania.memmap2
 
+import io.github.kotlinmania.io.files.Path
+
 /**
  * A raw platform descriptor for creating memory maps.
  */
@@ -24,5 +26,9 @@ interface MmapAsRawDesc {
 }
 
 fun Long.asRawDesc(): MmapRawDescriptor = MmapRawDescriptor(this)
+
 fun Int.asRawDesc(): MmapRawDescriptor = MmapRawDescriptor(this.toLong())
+
 fun String.asRawDesc(): MmapRawDescriptor = MmapRawDescriptor(this)
+
+fun Path.asRawDesc(): MmapRawDescriptor = MmapRawDescriptor(this.toString())

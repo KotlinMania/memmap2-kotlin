@@ -1,4 +1,4 @@
-// port-lint: source src/unix.rs
+// port-lint: source unix.rs
 package io.github.kotlinmania.memmap2.unix
 
 import io.github.kotlinmania.io.files.Path
@@ -17,12 +17,12 @@ const val MAP_HUGE_SHIFT: Int = 26
 class MmapInner(
     private var buffer: PlatformMmapInner,
 ) : PlatformMmapInner {
-
-    fun adjustMmapParams(len: Long, alignment: Long): Result<Pair<Long, Long>> = runCatching {
-        val mapLen = (len + alignment).coerceAtLeast(1L)
-        val mapOffset = alignment
-        Pair(mapLen, mapOffset)
-    }
+    fun adjustMmapParams(len: Long, alignment: Long): Result<Pair<Long, Long>> =
+        runCatching {
+            val mapLen = (len + alignment).coerceAtLeast(1L)
+            val mapOffset = alignment
+            Pair(mapLen, mapOffset)
+        }
 
     fun asMmapParams(): Triple<Long, Long, Long> {
         val offset = ptr() % pageSize()
@@ -37,13 +37,14 @@ class MmapInner(
     fun fromRawParts(ptr: Long, len: Long, offset: Long): MmapInner =
         MmapInner(MemoryMapBuffer.createAnon(len))
 
-    fun mprotect(prot: Int): Result<Unit> = runCatching {
-        if (prot == 1) { // PROT_READ
-            buffer.makeReadOnly().getOrThrow()
-        } else {
-            buffer.makeMut().getOrThrow()
+    fun mprotect(prot: Int): Result<Unit> =
+        runCatching {
+            if (prot == 1) { // PROT_READ
+                buffer.makeReadOnly().getOrThrow()
+            } else {
+                buffer.makeMut().getOrThrow()
+            }
         }
-    }
 
     fun drop() {
         close()
@@ -110,21 +111,23 @@ class MmapInner(
             flags: Int,
             file: Long,
             offset: Long,
-        ): Result<MmapInner> = runCatching {
-            val pathStr = FileRegistry.getPath(file)
-            val buffer = if (pathStr != null) {
-                MemoryMapBuffer.createFileBacked(
-                    path = Path(pathStr),
-                    offset = offset,
-                    len = len,
-                    writable = (prot and 2) != 0,
-                    copyOnWrite = (flags and 1) != 0,
-                )
-            } else {
-                MemoryMapBuffer.createAnon(len)
+        ): Result<MmapInner> =
+            runCatching {
+                val pathStr = FileRegistry.getPath(file)
+                val buffer =
+                    if (pathStr != null) {
+                        MemoryMapBuffer.createFileBacked(
+                            path = Path(pathStr),
+                            offset = offset,
+                            len = len,
+                            writable = (prot and 2) != 0,
+                            copyOnWrite = (flags and 1) != 0,
+                        )
+                    } else {
+                        MemoryMapBuffer.createAnon(len)
+                    }
+                MmapInner(buffer)
             }
-            MmapInner(buffer)
-        }
 
         fun map(len: Long, file: Long, offset: Long, populate: Boolean): Result<MmapInner> =
             new(len, 1, 0, file, offset)
@@ -141,21 +144,23 @@ class MmapInner(
         fun mapCopyReadOnly(len: Long, file: Long, offset: Long, populate: Boolean): Result<MmapInner> =
             new(len, 1, 1, file, offset)
 
-        fun mapAnon(len: Long, stack: Boolean, populate: Boolean, huge: UByte?): Result<MmapInner> = runCatching {
-            MmapInner(MemoryMapBuffer.createAnon(len))
-        }
+        fun mapAnon(len: Long, stack: Boolean, populate: Boolean, huge: UByte?): Result<MmapInner> =
+            runCatching {
+                MmapInner(MemoryMapBuffer.createAnon(len))
+            }
     }
 }
 
 fun pageSize(): Long = 4096L
 
-fun fileLen(file: Long): Result<Long> = runCatching {
-    val pathStr = FileRegistry.getPath(file)
-    if (pathStr != null) {
-        val path = Path(pathStr)
-        if (SystemFileSystem.exists(path)) {
-            return@runCatching SystemFileSystem.metadataOrNull(path)?.size ?: 0L
+fun fileLen(file: Long): Result<Long> =
+    runCatching {
+        val pathStr = FileRegistry.getPath(file)
+        if (pathStr != null) {
+            val path = Path(pathStr)
+            if (SystemFileSystem.exists(path)) {
+                return@runCatching SystemFileSystem.metadataOrNull(path)?.size ?: 0L
+            }
         }
+        0L
     }
-    0L
-}

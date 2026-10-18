@@ -9,8 +9,8 @@ class RemapOptions(
     /**
      * If the mapping cannot be resized in place, move it.
      */
-    fun mayMove(): RemapOptions {
-        mayMoveValue = true
+    fun mayMove(mayMove: Boolean = true): RemapOptions {
+        mayMoveValue = mayMove
         return this
     }
 

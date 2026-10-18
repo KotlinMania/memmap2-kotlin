@@ -1,5 +1,7 @@
 package io.github.kotlinmania.memmap2
 
+import io.github.kotlinmania.io.files.Path
+
 /**
  * A handle to a raw memory mapped buffer.
  */
@@ -25,6 +27,18 @@ class MmapRaw internal constructor(
         inner.len().toInt()
 
     val size: Int get() = len()
+
+    operator fun get(index: Int): Byte =
+        inner.get(index.toLong())
+
+    operator fun get(index: Long): Byte =
+        inner.get(index)
+
+    fun readByte(offset: Long = 0L): Byte =
+        inner.get(offset)
+
+    fun asByteArray(): ByteArray =
+        inner.asByteArray()
 
     /**
      * Flushes outstanding memory map modifications to disk.
@@ -121,11 +135,17 @@ class MmapRaw internal constructor(
         fun <T : MmapAsRawDesc> mapRaw(file: T): Result<MmapRaw> =
             MmapOptions.new().mapRaw(file)
 
+        fun mapRaw(path: Path): Result<MmapRaw> =
+            mapRaw(path.asRawDesc())
+
         /**
          * Creates a read-only raw memory map backed by a file.
          */
         fun <T : MmapAsRawDesc> mapRawReadOnly(file: T): Result<MmapRaw> =
             MmapOptions.new().mapRawReadOnly(file)
+
+        fun mapRawReadOnly(path: Path): Result<MmapRaw> =
+            mapRawReadOnly(path.asRawDesc())
 
         /**
          * Converts an immutable memory map into a raw memory map.

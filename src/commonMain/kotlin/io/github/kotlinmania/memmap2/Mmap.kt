@@ -1,5 +1,12 @@
 package io.github.kotlinmania.memmap2
 
+import io.github.kotlinmania.io.files.Path
+
+/**
+ * Underlying target byte slice for dereferencing operations.
+ */
+typealias Target = ByteArray
+
 /**
  * A handle to an immutable memory mapped buffer.
  */
@@ -98,6 +105,12 @@ class Mmap internal constructor(
     fun asByteArray(): ByteArray =
         inner.asByteArray()
 
+    fun deref(): ByteArray =
+        asByteArray()
+
+    fun asRef(): ByteArray =
+        asByteArray()
+
     /**
      * Copies data from this mapped buffer into the destination array.
      */
@@ -132,5 +145,8 @@ class Mmap internal constructor(
          */
         fun <T : MmapAsRawDesc> map(file: T): Result<Mmap> =
             MmapOptions.new().map(file)
+
+        fun map(path: Path): Result<Mmap> =
+            map(path.asRawDesc())
     }
 }

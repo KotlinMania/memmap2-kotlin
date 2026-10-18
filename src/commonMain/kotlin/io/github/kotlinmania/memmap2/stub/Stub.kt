@@ -1,4 +1,4 @@
-// port-lint: source src/stub.rs
+// port-lint: source stub.rs
 package io.github.kotlinmania.memmap2.stub
 
 /**
@@ -36,28 +36,44 @@ class MmapInner private constructor(
     }
 
     fun flush(offset: Long, len: Long): Result<Unit> =
-        when (never) {}
+        when (never as Any) {
+            else -> Result.failure(IllegalStateException("unreachable"))
+        }
 
     fun flushAsync(offset: Long, len: Long): Result<Unit> =
-        when (never) {}
+        when (never as Any) {
+            else -> Result.failure(IllegalStateException("unreachable"))
+        }
 
     fun makeReadOnly(): Result<Unit> =
-        when (never) {}
+        when (never as Any) {
+            else -> Result.failure(IllegalStateException("unreachable"))
+        }
 
     fun makeExec(): Result<Unit> =
-        when (never) {}
+        when (never as Any) {
+            else -> Result.failure(IllegalStateException("unreachable"))
+        }
 
     fun makeMut(): Result<Unit> =
-        when (never) {}
+        when (never as Any) {
+            else -> Result.failure(IllegalStateException("unreachable"))
+        }
 
     fun ptr(): Long =
-        when (never) {}
+        when (never as Any) {
+            else -> 0L
+        }
 
     fun mutPtr(): Long =
-        when (never) {}
+        when (never as Any) {
+            else -> 0L
+        }
 
     fun len(): Long =
-        when (never) {}
+        when (never as Any) {
+            else -> 0L
+        }
 }
 
 fun fileLen(file: Any?): Result<Long> =

@@ -1,10 +1,12 @@
-// port-lint: source src/advice.rs
+// port-lint: source advice.rs
 package io.github.kotlinmania.memmap2
 
 /**
  * Values supported by advise functions.
  */
-enum class Advice(val value: Int) {
+enum class Advice(
+    val value: Int,
+) {
     /**
      * No special treatment. This is the default.
      */
@@ -89,7 +91,9 @@ enum class Advice(val value: Int) {
 /**
  * Values supported by unchecked advise functions.
  */
-enum class UncheckedAdvice(val value: Int) {
+enum class UncheckedAdvice(
+    val value: Int,
+) {
     /**
      * Do not expect access in the near future.
      */

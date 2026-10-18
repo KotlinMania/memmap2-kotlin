@@ -95,130 +95,159 @@ class MmapOptions(
     /**
      * Creates a read-only memory map backed by a file.
      */
-    fun <T : MmapAsRawDesc> map(file: T): Result<Mmap> = runCatching {
-        val desc = file.asRawDesc()
-        val length = getLen(desc).getOrThrow()
-        val path = resolvePath(desc)
-        val inner = MemoryMapBuffer.createFileBacked(
-            path = path,
-            offset = offsetValue,
-            len = length,
-            writable = false,
-            copyOnWrite = false,
-        )
-        Mmap(inner)
-    }
+    fun <T : MmapAsRawDesc> map(file: T): Result<Mmap> =
+        runCatching {
+            val desc = file.asRawDesc()
+            val length = getLen(desc).getOrThrow()
+            val path = resolvePath(desc)
+            val inner =
+                MemoryMapBuffer.createFileBacked(
+                    path = path,
+                    offset = offsetValue,
+                    len = length,
+                    writable = false,
+                    copyOnWrite = false,
+                )
+            Mmap(inner)
+        }
 
     /**
      * Creates a readable and executable memory map backed by a file.
      */
-    fun <T : MmapAsRawDesc> mapExec(file: T): Result<Mmap> = runCatching {
-        val desc = file.asRawDesc()
-        val length = getLen(desc).getOrThrow()
-        val path = resolvePath(desc)
-        val inner = MemoryMapBuffer.createFileBacked(
-            path = path,
-            offset = offsetValue,
-            len = length,
-            writable = false,
-            copyOnWrite = false,
-        )
-        Mmap(inner)
-    }
+    fun <T : MmapAsRawDesc> mapExec(file: T): Result<Mmap> =
+        runCatching {
+            val desc = file.asRawDesc()
+            val length = getLen(desc).getOrThrow()
+            val path = resolvePath(desc)
+            val inner =
+                MemoryMapBuffer.createFileBacked(
+                    path = path,
+                    offset = offsetValue,
+                    len = length,
+                    writable = false,
+                    copyOnWrite = false,
+                )
+            Mmap(inner)
+        }
 
     /**
      * Creates a writeable memory map backed by a file.
      */
-    fun <T : MmapAsRawDesc> mapMut(file: T): Result<MmapMut> = runCatching {
-        val desc = file.asRawDesc()
-        val length = getLen(desc).getOrThrow()
-        val path = resolvePath(desc)
-        val inner = MemoryMapBuffer.createFileBacked(
-            path = path,
-            offset = offsetValue,
-            len = length,
-            writable = true,
-            copyOnWrite = false,
-        )
-        MmapMut(inner)
-    }
+    fun <T : MmapAsRawDesc> mapMut(file: T): Result<MmapMut> =
+        runCatching {
+            val desc = file.asRawDesc()
+            val length = getLen(desc).getOrThrow()
+            val path = resolvePath(desc)
+            val inner =
+                MemoryMapBuffer.createFileBacked(
+                    path = path,
+                    offset = offsetValue,
+                    len = length,
+                    writable = true,
+                    copyOnWrite = false,
+                )
+            MmapMut(inner)
+        }
 
     /**
      * Creates a copy-on-write memory map backed by a file.
      */
-    fun <T : MmapAsRawDesc> mapCopy(file: T): Result<MmapMut> = runCatching {
-        val desc = file.asRawDesc()
-        val length = getLen(desc).getOrThrow()
-        val path = resolvePath(desc)
-        val inner = MemoryMapBuffer.createFileBacked(
-            path = path,
-            offset = offsetValue,
-            len = length,
-            writable = true,
-            copyOnWrite = true,
-        )
-        MmapMut(inner)
-    }
+    fun <T : MmapAsRawDesc> mapCopy(file: T): Result<MmapMut> =
+        runCatching {
+            val desc = file.asRawDesc()
+            val length = getLen(desc).getOrThrow()
+            val path = resolvePath(desc)
+            val inner =
+                MemoryMapBuffer.createFileBacked(
+                    path = path,
+                    offset = offsetValue,
+                    len = length,
+                    writable = true,
+                    copyOnWrite = true,
+                )
+            MmapMut(inner)
+        }
 
     /**
      * Creates a copy-on-write read-only memory map backed by a file.
      */
-    fun <T : MmapAsRawDesc> mapCopyReadOnly(file: T): Result<Mmap> = runCatching {
-        val desc = file.asRawDesc()
-        val length = getLen(desc).getOrThrow()
-        val path = resolvePath(desc)
-        val inner = MemoryMapBuffer.createFileBacked(
-            path = path,
-            offset = offsetValue,
-            len = length,
-            writable = false,
-            copyOnWrite = true,
-        )
-        Mmap(inner)
-    }
+    fun <T : MmapAsRawDesc> mapCopyReadOnly(file: T): Result<Mmap> =
+        runCatching {
+            val desc = file.asRawDesc()
+            val length = getLen(desc).getOrThrow()
+            val path = resolvePath(desc)
+            val inner =
+                MemoryMapBuffer.createFileBacked(
+                    path = path,
+                    offset = offsetValue,
+                    len = length,
+                    writable = false,
+                    copyOnWrite = true,
+                )
+            Mmap(inner)
+        }
 
     /**
      * Creates an anonymous memory map.
      */
-    fun mapAnon(): Result<MmapMut> = runCatching {
-        val length = lenValue ?: 0L
-        val inner = MemoryMapBuffer.createAnon(length)
-        MmapMut(inner)
-    }
+    fun mapAnon(): Result<MmapMut> =
+        runCatching {
+            val length = lenValue ?: 0L
+            val inner = MemoryMapBuffer.createAnon(length)
+            MmapMut(inner)
+        }
 
     /**
      * Creates a raw memory map.
      */
-    fun <T : MmapAsRawDesc> mapRaw(file: T): Result<MmapRaw> = runCatching {
-        val desc = file.asRawDesc()
-        val length = getLen(desc).getOrThrow()
-        val path = resolvePath(desc)
-        val inner = MemoryMapBuffer.createFileBacked(
-            path = path,
-            offset = offsetValue,
-            len = length,
-            writable = true,
-            copyOnWrite = false,
-        )
-        MmapRaw(inner)
-    }
+    fun <T : MmapAsRawDesc> mapRaw(file: T): Result<MmapRaw> =
+        runCatching {
+            val desc = file.asRawDesc()
+            val length = getLen(desc).getOrThrow()
+            val path = resolvePath(desc)
+            val inner =
+                MemoryMapBuffer.createFileBacked(
+                    path = path,
+                    offset = offsetValue,
+                    len = length,
+                    writable = true,
+                    copyOnWrite = false,
+                )
+            MmapRaw(inner)
+        }
 
     /**
      * Creates a read-only raw memory map.
      */
-    fun <T : MmapAsRawDesc> mapRawReadOnly(file: T): Result<MmapRaw> = runCatching {
-        val desc = file.asRawDesc()
-        val length = getLen(desc).getOrThrow()
-        val path = resolvePath(desc)
-        val inner = MemoryMapBuffer.createFileBacked(
-            path = path,
-            offset = offsetValue,
-            len = length,
-            writable = false,
-            copyOnWrite = false,
-        )
-        MmapRaw(inner)
-    }
+    fun <T : MmapAsRawDesc> mapRawReadOnly(file: T): Result<MmapRaw> =
+        runCatching {
+            val desc = file.asRawDesc()
+            val length = getLen(desc).getOrThrow()
+            val path = resolvePath(desc)
+            val inner =
+                MemoryMapBuffer.createFileBacked(
+                    path = path,
+                    offset = offsetValue,
+                    len = length,
+                    writable = false,
+                    copyOnWrite = false,
+                )
+            MmapRaw(inner)
+        }
+
+    fun map(path: Path): Result<Mmap> = map(path.asRawDesc())
+
+    fun mapExec(path: Path): Result<Mmap> = mapExec(path.asRawDesc())
+
+    fun mapMut(path: Path): Result<MmapMut> = mapMut(path.asRawDesc())
+
+    fun mapCopy(path: Path): Result<MmapMut> = mapCopy(path.asRawDesc())
+
+    fun mapCopyReadOnly(path: Path): Result<Mmap> = mapCopyReadOnly(path.asRawDesc())
+
+    fun mapRaw(path: Path): Result<MmapRaw> = mapRaw(path.asRawDesc())
+
+    fun mapRawReadOnly(path: Path): Result<MmapRaw> = mapRawReadOnly(path.asRawDesc())
 
     private fun resolvePath(desc: MmapRawDescriptor): Path {
         val pathStr = desc.path ?: FileRegistry.getPath(desc.raw)

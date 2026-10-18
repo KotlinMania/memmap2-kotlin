@@ -146,6 +146,17 @@ configurations.configureEach {
     }
 }
 
+// Test name patterns to skip in browser test runs (js and wasmJs), from
+// project.js.browserTestExcludes as a comma-separated list. Use for tests that
+// need Node-only modules such as fs or path.
+val browserTestExcludes =
+    providers
+        .gradleProperty("project.js.browserTestExcludes")
+        .getOrElse("")
+        .split(',')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+
 // Opt-ins shared across Kotlin targets.
 val commonOptIns =
     listOf(
@@ -465,16 +476,36 @@ kotlin {
     // Web
     js {
         configureBenchmarkCompilation()
-        browser()
-        nodejs()
+        browser {
+            testTask {
+                browserTestExcludes.forEach { filter.excludeTestsMatching(it) }
+            }
+        }
+        nodejs {
+            testTask {
+                useMocha {
+                    timeout = "120s"
+                }
+            }
+        }
     }
 
     // wasmJs is Stable as of Kotlin 2.2; @OptIn may be removable — verify before dropping on wasmWasi.
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         configureBenchmarkCompilation()
-        browser()
-        nodejs()
+        browser {
+            testTask {
+                browserTestExcludes.forEach { filter.excludeTestsMatching(it) }
+            }
+        }
+        nodejs {
+            testTask {
+                useMocha {
+                    timeout = "120s"
+                }
+            }
+        }
     }
 
     @OptIn(ExperimentalWasmDsl::class)
@@ -1545,4 +1576,49 @@ val fullTargetBuildTaskNames =
 
 tasks.named("build") {
     dependsOn(fullTargetBuildTaskNames)
+}
+
+// Kotlin/Wasm's generated WASI test driver preopens no directories (KT-65179), so
+// filesystem tests cannot reach any path. project.wasmWasi.testPreopens lists guest
+// directories to map onto fresh host temporary directories for wasmWasiNodeTest.
+val wasmWasiTestPreopens =
+    providers
+        .gradleProperty("project.wasmWasi.testPreopens")
+        .getOrElse("")
+        .split(',')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+
+if (wasmWasiTestPreopens.isNotEmpty()) {
+    tasks.named("wasmWasiNodeTest") {
+        val driverDir = layout.buildDirectory.dir("compileSync/wasmWasi/test/testDevelopmentExecutable/kotlin")
+        val hostRoot = layout.buildDirectory.dir("tmp/wasmWasiTestPreopens")
+        doFirst {
+            val driver =
+                driverDir
+                    .get()
+                    .asFile
+                    .listFiles { file -> file.name.endsWith("-test.mjs") }
+                    ?.singleOrNull()
+                    ?: throw GradleException("wasmWasi test driver not found in ${driverDir.get().asFile}")
+            val root = hostRoot.get().asFile
+            root.deleteRecursively()
+            val mappings =
+                wasmWasiTestPreopens.mapIndexed { index, guest ->
+                    val host = root.resolve("preopen-$index").apply { mkdirs() }
+                    val hostPath = host.absolutePath.replace("\\", "\\\\")
+                    "'$guest': '$hostPath'"
+                }
+            val text = driver.readText()
+            if (!text.contains("preopens:")) {
+                val patched =
+                    text.replaceFirst(
+                        Regex("""new WASI\(\{"""),
+                        "new WASI({ preopens: { ${mappings.joinToString(", ")} },",
+                    )
+                if (patched == text) throw GradleException("Could not add preopens to ${driver.name}")
+                driver.writeText(patched)
+            }
+        }
+    }
 }

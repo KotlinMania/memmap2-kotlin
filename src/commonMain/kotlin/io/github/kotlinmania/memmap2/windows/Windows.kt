@@ -1,4 +1,4 @@
-// port-lint: source src/windows.rs
+// port-lint: source windows.rs
 package io.github.kotlinmania.memmap2.windows
 
 import io.github.kotlinmania.io.files.Path
@@ -34,13 +34,7 @@ const val SECTION_MAP_READ: UInt = 0x0004u
 const val SECTION_MAP_EXECUTE: UInt = 0x0008u
 const val SECTION_EXTEND_SIZE: UInt = 0x0010u
 const val SECTION_MAP_EXECUTE_EXPLICIT: UInt = 0x0020u
-const val SECTION_ALL_ACCESS: UInt =
-    STANDARD_RIGHTS_REQUIRED or
-        SECTION_QUERY or
-        SECTION_MAP_WRITE or
-        SECTION_MAP_READ or
-        SECTION_MAP_EXECUTE or
-        SECTION_EXTEND_SIZE
+const val SECTION_ALL_ACCESS: UInt = 0x000F001Fu
 
 const val PAGE_READONLY: UInt = 0x02u
 const val PAGE_READWRITE: UInt = 0x04u
@@ -86,28 +80,29 @@ fun protectionSupported(prot: UInt): Boolean = true
 
 fun allocationGranularity(): Long = 65536L
 
-fun fileLen(file: Long): Result<Long> = runCatching {
-    val pathStr = FileRegistry.getPath(file)
-    if (pathStr != null) {
-        val path = Path(pathStr)
-        if (SystemFileSystem.exists(path)) {
-            return@runCatching SystemFileSystem.metadataOrNull(path)?.size ?: 0L
+fun fileLen(file: Long): Result<Long> =
+    runCatching {
+        val pathStr = FileRegistry.getPath(file)
+        if (pathStr != null) {
+            val path = Path(pathStr)
+            if (SystemFileSystem.exists(path)) {
+                return@runCatching SystemFileSystem.metadataOrNull(path)?.size ?: 0L
+            }
         }
+        0L
     }
-    0L
-}
 
 class MmapInner(
     private var buffer: PlatformMmapInner,
 ) : PlatformMmapInner {
-
-    fun virtualProtect(protect: UInt): Result<Unit> = runCatching {
-        if (protect == PAGE_READONLY) {
-            buffer.makeReadOnly().getOrThrow()
-        } else {
-            buffer.makeMut().getOrThrow()
+    fun virtualProtect(protect: UInt): Result<Unit> =
+        runCatching {
+            if (protect == PAGE_READONLY) {
+                buffer.makeReadOnly().getOrThrow()
+            } else {
+                buffer.makeMut().getOrThrow()
+            }
         }
-    }
 
     fun drop() {
         close()
@@ -174,21 +169,23 @@ class MmapInner(
             access: UInt,
             offset: Long,
             len: Long,
-        ): Result<MmapInner> = runCatching {
-            val pathStr = FileRegistry.getPath(file)
-            val buffer = if (pathStr != null) {
-                MemoryMapBuffer.createFileBacked(
-                    path = Path(pathStr),
-                    offset = offset,
-                    len = len,
-                    writable = (access and FILE_MAP_WRITE) != 0u,
-                    copyOnWrite = (access and FILE_MAP_COPY) != 0u,
-                )
-            } else {
-                MemoryMapBuffer.createAnon(len)
+        ): Result<MmapInner> =
+            runCatching {
+                val pathStr = FileRegistry.getPath(file)
+                val buffer =
+                    if (pathStr != null) {
+                        MemoryMapBuffer.createFileBacked(
+                            path = Path(pathStr),
+                            offset = offset,
+                            len = len,
+                            writable = (access and FILE_MAP_WRITE) != 0u,
+                            copyOnWrite = (access and FILE_MAP_COPY) != 0u,
+                        )
+                    } else {
+                        MemoryMapBuffer.createAnon(len)
+                    }
+                MmapInner(buffer)
             }
-            MmapInner(buffer)
-        }
 
         fun map(file: Long, offset: Long, len: Long): Result<MmapInner> =
             new(file, PAGE_READONLY, FILE_MAP_READ, offset, len)
@@ -205,8 +202,9 @@ class MmapInner(
         fun mapCopyReadOnly(file: Long, offset: Long, len: Long): Result<MmapInner> =
             new(file, PAGE_WRITECOPY, FILE_MAP_READ, offset, len)
 
-        fun mapAnon(len: Long): Result<MmapInner> = runCatching {
-            MmapInner(MemoryMapBuffer.createAnon(len))
-        }
+        fun mapAnon(len: Long): Result<MmapInner> =
+            runCatching {
+                MmapInner(MemoryMapBuffer.createAnon(len))
+            }
     }
 }
