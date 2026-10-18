@@ -79,7 +79,7 @@ naming:
   active: true
   TopLevelPropertyNaming: { active: false }
   FunctionNaming: { active: false }
-  ClassNaming: { active: true }
+  ClassNaming: { active: true, classPattern: '[A-Z][A-Za-z0-9_]*' }
   EnumNaming: { active: true }
   VariableNaming: { active: false }
   ConstructorParameterNaming: { active: false }
